@@ -1,9 +1,9 @@
 import express from 'express';
-import { registerPharmacy, updateStock } from '../controllers/pharmacyController.js';
+import { getPharmacies, registerPharmacy,  } from '../controllers/pharmacyRegister.js';
 
 const router = express.Router();
 
-router.post('/register', registerPharmacy);
-router.post('/stock', updateStock);
+router.post('/register',registerPharmacy);
+router.get('/stock', getPharmacies);
 
 export default router;
