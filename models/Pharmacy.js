@@ -31,6 +31,12 @@ const PharmacySchema = new mongoose.Schema({
       'Please provide a valid email address'
     ]
   },
+
+  password: {
+    type: String,
+    required: [true, 'Password is required'],
+  },
+  
   phoneNumber: {
     type: String,
     required: [true, 'Phone number is required'],

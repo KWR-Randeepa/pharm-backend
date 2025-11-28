@@ -1,8 +1,15 @@
 import Pharmacy from '../models/Pharmacy.js'; // Ensure the filename matches your model file
-
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 // @desc    Register a new pharmacy
 // @route   POST /api/pharmacy/register
 // @access  Public
+
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: '30d',
+  });
+};
 
 export const registerPharmacy = async (req, res) => {
 console.log("BODY RECEIVED:", req.body);
@@ -11,6 +18,7 @@ console.log("BODY RECEIVED:", req.body);
       pharmacyName, 
       ownerName, 
       email, 
+      password, 
       phoneNumber, 
       address, 
       openingHours, 
@@ -24,6 +32,10 @@ console.log("BODY RECEIVED:", req.body);
     if (pharmacyExists) {
       return res.status(400).json({ message: 'Pharmacy with this email already exists' });
     }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
 
     // 2. Format Location Data (GeoJSON)
     // The form sends flat lat/long, but the model needs a nested object
@@ -45,6 +57,7 @@ console.log("BODY RECEIVED:", req.body);
       pharmacyName,
       ownerName,
       email,
+      password: hashedPassword,
       phoneNumber,
       address,
       openingHours,
@@ -57,7 +70,8 @@ console.log("BODY RECEIVED:", req.body);
         message: 'Pharmacy registered successfully',
         _id: pharmacy._id,
         pharmacyName: pharmacy.pharmacyName,
-        email: pharmacy.email
+        email: pharmacy.email,
+        token: generateToken(pharmacy._id)
       });
     } else {
       res.status(400).json({ message: 'Invalid pharmacy data' });
@@ -78,5 +92,26 @@ export const getPharmacies = async (req, res) => {
     res.json(pharmacies);
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });
+  }
+};
+export const loginPharmacy = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // Check for pharmacy email
+    const pharmacy = await Pharmacy.findOne({ email });
+
+    if (pharmacy && (await bcrypt.compare(password, pharmacy.password))) {
+      res.json({
+        _id: pharmacy._id,
+        pharmacyName: pharmacy.pharmacyName,
+        email: pharmacy.email,
+        token: generateToken(pharmacy._id) // Important: This token allows access to Admin Panel
+      });
+    } else {
+      res.status(401).json({ message: 'Invalid email or password' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
