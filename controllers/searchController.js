@@ -9,8 +9,8 @@ export const findMedicineNearby = async (req, res) => {
 
     // Step 1: Find the Medicine ID based on the name user typed
     // We use regex for partial matching (case insensitive)
-    const medicine = await Medicine.findOne({ 
-      brandName: { $regex: drugName, $options: 'i' } 
+    const medicine = await Medicine.findOne({
+      brandName: { $regex: drugName, $options: 'i' }
     });
 
     if (!medicine) {
@@ -35,15 +35,15 @@ export const findMedicineNearby = async (req, res) => {
       medicine: medicine._id,
       pharmacy: { $in: pharmacyIds },
       status: 'In Stock'
-    }).populate('pharmacy', 'name address location contactNumber');
+    }).populate('pharmacy', 'pharmacyName ownerName email phoneNumber address location openingHours');
 
     // Step 4: Check for substitutes if no stock found
     if (availableStock.length === 0) {
-        // Call a simplified generic search (Optional logic here)
-        return res.json({ 
-            message: "Exact brand out of stock nearby.",
-            suggestion: `Try searching for generic: ${medicine.genericName}` 
-        });
+      // Call a simplified generic search (Optional logic here)
+      return res.json({
+        message: "Exact brand out of stock nearby.",
+        suggestion: `Try searching for generic: ${medicine.genericName}`
+      });
     }
 
     res.json(availableStock);
