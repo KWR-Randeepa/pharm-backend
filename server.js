@@ -4,7 +4,7 @@ import cors from 'cors';
 import connectDB from './config/db.js';
 import pharmacyRoutes from './routes/pharmacyRoutes.js';
 import searchRoutes from './routes/searchRoutes.js';
-
+import inventoryRoutes from './routes/inventoryRoutes.js';
 dotenv.config();
 connectDB();
 
@@ -16,6 +16,7 @@ app.use(cors());
 
 // Routes
 app.use('/api/pharmacy', pharmacyRoutes);
+app.use('/api/inventory', inventoryRoutes);
 app.use('/api/search', searchRoutes);
 
 
