@@ -7,7 +7,7 @@ export const registerPharmacy = async (req, res) => {
   try {
     // coordinates must be [Longitude, Latitude]
     const { name, address, latitude, longitude } = req.body;
-    
+
     const pharmacy = await Pharmacy.create({
       name,
       address,
@@ -23,7 +23,7 @@ export const registerPharmacy = async (req, res) => {
 export const updateStock = async (req, res) => {
   try {
     const { pharmacyId, medicineId, status } = req.body;
-    
+
     // Check if inventory record exists, if so update, else create
     let inventory = await Inventory.findOne({ pharmacy: pharmacyId, medicine: medicineId });
 
@@ -39,6 +39,32 @@ export const updateStock = async (req, res) => {
       });
     }
     res.json(inventory);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// 3. Get generic nearby pharmacies (for selecting specific pharmacy)
+export const getNearbyPharmacies = async (req, res) => {
+  try {
+    const { lat, long } = req.query;
+    const MAX_DISTANCE_METERS = 10000; // 10km
+
+    if (!lat || !long) {
+      return res.status(400).json({ message: "Latitude and Longitude are required." });
+    }
+
+    const nearbyPharmacies = await Pharmacy.find({
+      location: {
+        $near: {
+          $geometry: { type: "Point", coordinates: [parseFloat(long), parseFloat(lat)] },
+          $maxDistance: MAX_DISTANCE_METERS
+        }
+      }
+    }).select('pharmacyName ownerName email phoneNumber address location openingHours');
+
+    res.json(nearbyPharmacies);
+
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
