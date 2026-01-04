@@ -61,7 +61,7 @@ export const getNearbyPharmacies = async (req, res) => {
           $maxDistance: MAX_DISTANCE_METERS
         }
       }
-    }).select('pharmacyName ownerName email phoneNumber address location openingHours');
+    }).select('pharmacyName ownerName email phoneNumber address location openingHours profilePicture');
 
     res.json(nearbyPharmacies);
 

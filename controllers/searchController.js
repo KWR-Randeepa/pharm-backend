@@ -35,7 +35,7 @@ export const findMedicineNearby = async (req, res) => {
       medicine: medicine._id,
       pharmacy: { $in: pharmacyIds },
       status: 'In Stock'
-    }).populate('pharmacy', 'pharmacyName ownerName email phoneNumber address location openingHours');
+    }).populate('pharmacy', 'pharmacyName ownerName email phoneNumber address location openingHours profilePicture');
 
     // Step 4: Check for substitutes if no stock found
     if (availableStock.length === 0) {
