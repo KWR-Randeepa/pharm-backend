@@ -1,58 +1,36 @@
-import Pharmacy from '../models/Pharmacy.js'; // Ensure the filename matches your model file
+import Pharmacy from '../models/Pharmacy.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-// @desc    Register a new pharmacy
-// @route   POST /api/pharmacy/register
-// @access  Public
+import { OAuth2Client } from 'google-auth-library';
 
+// Google OAuth client
+const googleClient = new OAuth2Client(
+  "1021227931270-50trr6ij37m65fkt624gr58m7usn5p3r.apps.googleusercontent.com"
+);
+
+// Generate JWT token
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '30d',
-  });
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
+// ----------------------
+// Register pharmacy (email/password)
+// ----------------------
 export const registerPharmacy = async (req, res) => {
-console.log("BODY RECEIVED:", req.body);
   try {
-    const { 
-      pharmacyName, 
-      ownerName, 
-      email, 
-      password, 
-      phoneNumber, 
-      address, 
-      openingHours, 
-      latitude, 
-      longitude,
-      profilePicture 
-    } = req.body || {};
+    const { pharmacyName, ownerName, email, password, phoneNumber, address, openingHours, latitude, longitude, profilePicture } = req.body;
 
-    // 1. Check if pharmacy already exists
-    const pharmacyExists = await Pharmacy.findOne({ email });
-    if (pharmacyExists) {
-      return res.status(400).json({ message: 'Pharmacy with this email already exists' });
-    }
+    // Check if already exists
+    const existing = await Pharmacy.findOne({ email });
+    if (existing) return res.status(400).json({ message: 'Pharmacy already exists' });
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-
-    // 2. Format Location Data (GeoJSON)
-    // The form sends flat lat/long, but the model needs a nested object
-    let locationData = {
+    const location = {
       type: 'Point',
-      coordinates: [0, 0] // Default
+      coordinates: latitude && longitude ? [parseFloat(longitude), parseFloat(latitude)] : [0, 0]
     };
 
-    if (latitude && longitude) {
-      locationData = {
-        type: 'Point',
-        // Note: MongoDB GeoJSON format is [Longitude, Latitude]
-        coordinates: [parseFloat(longitude), parseFloat(latitude)]
-      };
-    }
-
-    // 3. Create the new Pharmacy object
     const pharmacy = await Pharmacy.create({
       pharmacyName,
       ownerName,
@@ -61,57 +39,103 @@ console.log("BODY RECEIVED:", req.body);
       phoneNumber,
       address,
       openingHours,
-      location: locationData,
+      location,
       profilePicture: profilePicture || null
     });
 
-    if (pharmacy) {
-      res.status(201).json({
-        message: 'Pharmacy registered successfully',
-        _id: pharmacy._id,
-        pharmacyName: pharmacy.pharmacyName,
-        email: pharmacy.email,
-        token: generateToken(pharmacy._id)
-      });
-    } else {
-      res.status(400).json({ message: 'Invalid pharmacy data' });
-    }
+    res.status(201).json({
+      _id: pharmacy._id,
+      pharmacyName: pharmacy.pharmacyName,
+      email: pharmacy.email,
+      token: generateToken(pharmacy._id)
+    });
 
-  } catch (error) {
-    console.error('Registration Error:', error);
-    res.status(500).json({ message: 'Server Error', error: error.message });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error', error: err.message });
   }
 };
 
-// @desc    Get all pharmacies
-// @route   GET /api/pharmacy
-// @access  Public
+// ----------------------
+// Login pharmacy (email/password)
+// ----------------------
+export const loginPharmacy = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const pharmacy = await Pharmacy.findOne({ email });
+    if (!pharmacy) return res.status(401).json({ message: 'Invalid email or password' });
+
+    const match = pharmacy.password ? await bcrypt.compare(password, pharmacy.password) : false;
+    if (!match) return res.status(401).json({ message: 'Invalid email or password' });
+
+    res.json({
+      _id: pharmacy._id,
+      pharmacyName: pharmacy.pharmacyName,
+      email: pharmacy.email,
+      token: generateToken(pharmacy._id)
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ----------------------
+// Google login pharmacy
+// ----------------------
+export const googleLoginPharmacy = async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ message: 'Google token missing' });
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: token,
+      audience: "1021227931270-50trr6ij37m65fkt624gr58m7usn5p3r.apps.googleusercontent.com"
+    });
+
+    const payload = ticket.getPayload();
+    const { email, name, picture } = payload;
+
+    // Check if pharmacy exists
+    let pharmacy = await Pharmacy.findOne({ email });
+
+    // If not, create a new pharmacy (Google user, no password)
+    if (!pharmacy) {
+      pharmacy = await Pharmacy.create({
+        pharmacyName: name || 'Google Pharmacy',
+        ownerName: name,
+        email,
+        password: null,
+        phoneNumber: null,
+        address: null,
+        openingHours: null,
+        location: { type: 'Point', coordinates: [0, 0] },
+        profilePicture: picture || null
+      });
+    }
+
+    res.json({
+      _id: pharmacy._id,
+      pharmacyName: pharmacy.pharmacyName,
+      email: pharmacy.email,
+      token: generateToken(pharmacy._id)
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(401).json({ message: 'Invalid Google token' });
+  }
+};
+
+// ----------------------
+// Get all pharmacies
+// ----------------------
 export const getPharmacies = async (req, res) => {
   try {
     const pharmacies = await Pharmacy.find({});
     res.json(pharmacies);
-  } catch (error) {
+  } catch (err) {
     res.status(500).json({ message: 'Server Error' });
-  }
-};
-export const loginPharmacy = async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    // Check for pharmacy email
-    const pharmacy = await Pharmacy.findOne({ email });
-
-    if (pharmacy && (await bcrypt.compare(password, pharmacy.password))) {
-      res.json({
-        _id: pharmacy._id,
-        pharmacyName: pharmacy.pharmacyName,
-        email: pharmacy.email,
-        token: generateToken(pharmacy._id) // Important: This token allows access to Admin Panel
-      });
-    } else {
-      res.status(401).json({ message: 'Invalid email or password' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
   }
 };

@@ -8,6 +8,7 @@ import pharmacyRoutes from './routes/pharmacyRoutes.js';
 import searchRoutes from './routes/searchRoutes.js';
 import inventoryRoutes from './routes/inventoryRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
+import { checkInteraction } from './controllers/InteractionChecker.js';
 
 dotenv.config();
 connectDB();
@@ -22,7 +23,7 @@ app.use(cors());
 
 // Serve uploaded images statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
+app.post('/api/interaction', checkInteraction);
 // Routes
 app.use('/api/pharmacy', pharmacyRoutes);
 app.use('/api/inventory', inventoryRoutes);
