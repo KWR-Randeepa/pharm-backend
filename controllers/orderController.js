@@ -69,7 +69,7 @@ export const confirmOrder = async (req, res) => {
             await sendEmail(order.userEmail, subject, text);
         } catch (emailErr) {
             console.error("Email sending failed:", emailErr);
-            // We still return success as the order is updated, but maybe warn
+       
         }
 
         res.json({ message: "Order confirmed and email sent.", order });

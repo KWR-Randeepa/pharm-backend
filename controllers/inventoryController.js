@@ -32,8 +32,8 @@ export const addMedicineToInventory = async (req, res) => {
     const newItem = await Inventory.create({
       pharmacy: pharmacyId,
       medicine: medicine._id,
-      brandName: brandName,     // <--- You must add this because your Schema requires it
-      genericName: genericName, // <--- You must add this because your Schema requires it
+      brandName: brandName,    
+      genericName: genericName, 
       description: description,
       status: status || 'In Stock'
     });

@@ -33,7 +33,7 @@ import { protect } from '../middleware/authMiddleware.js';
 
 // Routes
 router.post('/', upload.single('prescriptionImage'), createOrder);
-router.get('/', protect, getPharmacyOrders); // Changed from /:pharmacyId to / and added protect
+router.get('/', protect, getPharmacyOrders); 
 router.put('/:orderId/confirm', protect, confirmOrder);
 
 export default router;

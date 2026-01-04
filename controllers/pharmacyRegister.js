@@ -13,9 +13,9 @@ const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
-// ----------------------
+
 // Register pharmacy (email/password)
-// ----------------------
+
 export const registerPharmacy = async (req, res) => {
   try {
     const { pharmacyName, ownerName, email, password, phoneNumber, address, openingHours, latitude, longitude, profilePicture } = req.body;
@@ -56,9 +56,9 @@ export const registerPharmacy = async (req, res) => {
   }
 };
 
-// ----------------------
+
 // Login pharmacy (email/password)
-// ----------------------
+
 export const loginPharmacy = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -81,9 +81,9 @@ export const loginPharmacy = async (req, res) => {
   }
 };
 
-// ----------------------
+
 // Google login pharmacy
-// ----------------------
+
 export const googleLoginPharmacy = async (req, res) => {
   try {
     const { token } = req.body;
@@ -128,9 +128,9 @@ export const googleLoginPharmacy = async (req, res) => {
   }
 };
 
-// ----------------------
+
 // Get all pharmacies
-// ----------------------
+
 export const getPharmacies = async (req, res) => {
   try {
     const pharmacies = await Pharmacy.find({});
